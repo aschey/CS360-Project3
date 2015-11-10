@@ -18,10 +18,13 @@ public class Project3 {
         catch (FileNotFoundException ex) {
             System.out.println(ex.toString());
         }
+        catch (InputMismatchException ex) {
+            System.out.println("Error: puzzle text file malformed: " + ex.toString());
+        }
     }
 
-    public static Puzzle createPuzzle(ArrayList<String> words) throws FileNotFoundException {
-         try (Scanner scan = new Scanner(new File("puzzle.txt"))) {
+    public static Puzzle createPuzzle(ArrayList<String> words) throws FileNotFoundException, InputMismatchException {
+        try (Scanner scan = new Scanner(new File("puzzle.txt"))) {
             int size = scan.nextInt();
             Puzzle puzzle = new Puzzle(size, words);
             while (scan.hasNext()) {
@@ -58,11 +61,21 @@ class Puzzle {
     }
 
     public void add(char letter) {
-        letters.set(point, letter);
-        point.getNext();
+        try {
+            letters.set(point, letter);
+            point.getNext();
+        }
+        catch (InputMismatchException ex) {
+            System.out.println(ex.toString());
+            System.exit(1);
+        }
     }
 
     public void DFS() {
+        if (point.hasNext()) {
+            System.out.println("Error: puzzle dimensions incorrect");
+            System.exit(1);
+        }
         final int MIN_LENGTH = 3;
         Point p = new Point(this.size);
         while (p.hasNext()) {
@@ -146,7 +159,7 @@ class Point {
         this.max = max;
     }
 
-    public void getNext() {
+    public void getNext() throws InputMismatchException {
         if (this.x == this.max - 1) {
             this.x = 0;
             this.y++;
@@ -183,6 +196,9 @@ class CoordinateMatrix {
     }
 
     public void set(Point p, char c) {
+        if (p.getY() >= this.size) {
+            throw new InputMismatchException("Point value out of bounds");
+        }
         this.letters[p.getX()][p.getY()] = c;
     }
 
