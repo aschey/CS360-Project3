@@ -8,13 +8,18 @@ import java.util.*;
  * 11/19/2015
  * Project 3
  */
+
 public class Project3 {
     public static void main(String[] args) {
         try {
+            // Create a sorted list of words from words.txt
             ArrayList<String> words = readWords();
-            Puzzle puzzle = createPuzzle(words);
-            puzzle.DFS();
+            // Create the puzzle graph
+            Puzzle wordSearch = createPuzzle(words);
+            // Find all words in the list and print them out
+            wordSearch.findWords();
         }
+        // Exit if words.txt or puzzle.txt doesn't exist
         catch (FileNotFoundException ex) {
             System.out.println(ex.toString());
         }
@@ -24,9 +29,14 @@ public class Project3 {
     }
 
     public static Puzzle createPuzzle(ArrayList<String> words) throws FileNotFoundException, InputMismatchException {
+        /**
+         * Creates the puzzle object to store the word search
+         */
         try (Scanner scan = new Scanner(new File("puzzle.txt"))) {
+            // Get the size of each row and column
             int size = scan.nextInt();
             Puzzle puzzle = new Puzzle(size, words);
+            // Insert each letter into the puzzle
             while (scan.hasNext()) {
                 char next = scan.next().charAt(0);
                 puzzle.add(next);
@@ -36,11 +46,15 @@ public class Project3 {
     }
 
     public static ArrayList<String> readWords() throws FileNotFoundException {
+        /**
+         * Read the list of words to search into a sorted list
+         */
         try (Scanner scan = new Scanner(new File("words.txt"))) {
             ArrayList<String> words = new ArrayList<>();
             while (scan.hasNext()) {
                 words.add(scan.next());
             }
+            // Sort the words so they can be easily searched
             Collections.sort(words);
             return words;
         }
@@ -61,41 +75,61 @@ class Puzzle {
     }
 
     public void add(char letter) {
+        /**
+         * Adds a letter to the puzzle
+         */
         try {
             letters.set(point, letter);
+            // Keep track of the x and y value the next character will be stored at
             point.getNext();
         }
+        // Exit if the number of letters added exceeded the size
         catch (InputMismatchException ex) {
             System.out.println(ex.toString());
             System.exit(1);
         }
     }
 
-    public void DFS() {
+    public void findWords() {
+        /**
+         * Searches the list of words and prints out the ones it finds
+         */
         if (point.hasNext()) {
             System.out.println("Error: puzzle dimensions incorrect");
             System.exit(1);
         }
-        final int MIN_LENGTH = 3;
-        Point p = new Point(this.size);
-        while (p.hasNext()) {
-            for (Direction d : Direction.values()) {
-                String check = this.letters.getString(p, d, MIN_LENGTH);
+        // Start searching words of length 4 because that's the smallest valid word
+        final int MIN_LENGTH = 4;
+        Point wordStart = new Point(this.size);
+        while (wordStart.hasNext()) {
+            // Start at a point and depth-first search for words in each direction
+            for (Direction searchDir : Direction.values()) {
+                String check = this.letters.getString(wordStart, searchDir, MIN_LENGTH);
+                // If a valid string of length 4 doesn't exist at this point and direction,
+                // move to the next one
                 if (!check.equals("")) {
-                    this.DFSVisit(check, p, d, this.words);
+                    this.findWordsRec(check, wordStart, searchDir, this.words);
                 }
             }
-            p.getNext();
+            wordStart.getNext();
         }
     }
 
     private ArrayList<String> allWordsWithPrefix(String prefix, ArrayList<String> searchList) {
+        /**
+         * Returns an ArrayList consisting of the subset of words in the original list
+         * that match the specified prefix
+         */
         ArrayList<String> results = new ArrayList<>();
+        // Binary search to find one index in the set of possible words
         int wordIndex = Collections.binarySearch(searchList, prefix,
             (check, key) -> check.startsWith(key) ? 0 : check.compareTo(key));
+        // Return an empty list if no matching words were found
         if (wordIndex < 0 || wordIndex >= searchList.size()) {
             return results;
         }
+        // Find the first index of a matching word. We need to start at the first index
+        // because words need to be added to the new list in sorted order
         while (wordIndex > 0 && this.words.get(wordIndex - 1).startsWith(prefix)) {
             wordIndex--;
         }
@@ -105,18 +139,21 @@ class Puzzle {
         return results;
     }
 
-    private void DFSVisit(String prefix, Point p, Direction d, ArrayList<String> searchList) {
+    private void findWordsRec(String prefix, Point wordStart, Direction searchDir, ArrayList<String> searchList) {
+        /**
+         * Prints a word
+         */
         searchList = this.allWordsWithPrefix(prefix, searchList);
         if (searchList.size() == 0) {
             return;
         }
         String word = searchList.get(0);
         if (prefix.equals(word)) {
-            System.out.println(new Result(word, p.getX() + 1, p.getY() + 1, d));
+            System.out.println(new Result(word, wordStart.getX() + 1, wordStart.getY() + 1, searchDir));
         }
-        char nextLetter = this.letters.get(p, d, prefix.length());
+        char nextLetter = this.letters.get(wordStart, searchDir, prefix.length());
         if (nextLetter != ' ') {
-            this.DFSVisit(prefix + nextLetter, p, d, searchList);
+            this.findWordsRec(prefix + nextLetter, wordStart, searchDir, searchList);
         }
     }
 }
@@ -191,8 +228,11 @@ class CoordinateMatrix {
         this.size = size;
     }
 
+    private boolean isValid(int i) {
+        return i < this.size && i >= 0;
+    }
     private boolean isValid(int x, int y) {
-        return x < this.size && y < this.size && x >= 0 && y >= 0;
+        return this.isValid(x) && this.isValid(y);
     }
 
     public void set(Point p, char c) {
