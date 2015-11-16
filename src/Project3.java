@@ -48,6 +48,9 @@ public class Project3 {
     public static ArrayList<String> readWords() throws FileNotFoundException {
         /**
          * Read the list of words to search into a sorted list
+         *
+         * I chose to use an ArrayList because it allows for log(n)
+         * searching with a custom comparator
          */
         try (Scanner scan = new Scanner(new File("words.txt"))) {
             ArrayList<String> words = new ArrayList<>();
@@ -64,13 +67,11 @@ public class Project3 {
 class Puzzle {
     private CoordinateMatrix letters;
     private int size;
-    private Point point;
     private ArrayList<String> words;
 
     public Puzzle(int size, ArrayList<String> words) {
         this.size = size;
         this.letters = new CoordinateMatrix(size);
-        this.point = new Point(size);
         this.words = words;
     }
 
@@ -79,9 +80,7 @@ class Puzzle {
          * Adds a letter to the puzzle
          */
         try {
-            letters.set(point, letter);
-            // Keep track of the x and y value the next character will be stored at
-            point.getNext();
+            letters.set(letter);
         }
         // Exit if the number of letters added exceeded the size
         catch (InputMismatchException ex) {
@@ -94,12 +93,13 @@ class Puzzle {
         /**
          * Searches the list of words and prints out the ones it finds
          */
-        if (point.hasNext()) {
+        // Exit if the puzzle file didn't contain enough letters
+        if (!this.letters.isFull()) {
             System.out.println("Error: puzzle dimensions incorrect");
             System.exit(1);
         }
         // Start searching words of length 4 because that's the smallest valid word
-        final int MIN_LENGTH = 4;
+        final int MIN_LENGTH = 1;
         Point wordStart = new Point(this.size);
         while (wordStart.hasNext()) {
             // Start at a point and depth-first search for words in each direction
@@ -108,10 +108,39 @@ class Puzzle {
                 // If a valid string of length 4 doesn't exist at this point and direction,
                 // move to the next one
                 if (!check.equals("")) {
+                    // At first, search using all valid words
+                    // This list will be narrowed down as the recursive function runs
+                    // in order to decrease search time
                     this.findWordsRec(check, wordStart, searchDir, this.words);
                 }
             }
             wordStart.getNext();
+        }
+    }
+
+    private void findWordsRec(String prefix, Point wordStart, Direction searchDir, ArrayList<String> searchList) {
+        /**
+         * Recursive helper for findWords
+         */
+        // Get the list of words that match the prefix
+        // If there are none, this path contains no words, stop searching
+        searchList = this.allWordsWithPrefix(prefix, searchList);
+        if (searchList.size() == 0) {
+            return;
+        }
+        // Check if the prefix equals the shortest word in the list of valid words
+        // The only case where the list will have more than one word is when the previous word is a substring of the next word
+        // i.e. get, gets, getting
+        // Therefore, we always want to check the smallest word first to insure we don't skip any
+        String word = searchList.get(0);
+        if (prefix.equals(word)) {
+            System.out.println(new Result(word, wordStart.getX() + 1, wordStart.getY() + 1, searchDir));
+        }
+        // If we can keep searching on this same path, add the next letter to the prefix and recurse,
+        // using the new list of valid words to search
+        char nextLetter = this.letters.get(wordStart, searchDir, prefix.length());
+        if (nextLetter != ' ') {
+            this.findWordsRec(prefix + nextLetter, wordStart, searchDir, searchList);
         }
     }
 
@@ -137,24 +166,6 @@ class Puzzle {
             results.add(searchList.get(i));
         }
         return results;
-    }
-
-    private void findWordsRec(String prefix, Point wordStart, Direction searchDir, ArrayList<String> searchList) {
-        /**
-         * Prints a word
-         */
-        searchList = this.allWordsWithPrefix(prefix, searchList);
-        if (searchList.size() == 0) {
-            return;
-        }
-        String word = searchList.get(0);
-        if (prefix.equals(word)) {
-            System.out.println(new Result(word, wordStart.getX() + 1, wordStart.getY() + 1, searchDir));
-        }
-        char nextLetter = this.letters.get(wordStart, searchDir, prefix.length());
-        if (nextLetter != ' ') {
-            this.findWordsRec(prefix + nextLetter, wordStart, searchDir, searchList);
-        }
     }
 }
 
@@ -196,17 +207,25 @@ class Point {
         this.max = max;
     }
 
-    public void getNext() throws InputMismatchException {
+    public void getNext() {
+        /**
+         * Sets the x and y value to the next valid point
+         */
+        // If we are at the end of a row, start at the next row
         if (this.x == this.max - 1) {
             this.x = 0;
             this.y++;
         }
+        // Otherwise, move the x value along the row
         else {
             this.x++;
         }
     }
 
     public boolean hasNext() {
+        /**
+         * Returns true if we're not at the maximum value for this point
+         */
         return this.y < this.max;
     }
 
@@ -221,51 +240,78 @@ class Point {
 
 class CoordinateMatrix {
     private char[][] letters;
-    int size;
+    private int size;
+    private Point addPoint;
 
     public CoordinateMatrix(int size) {
         this.letters = new char[size][size];
         this.size = size;
+        this.addPoint = new Point(size);
     }
 
     private boolean isValid(int i) {
+        /**
+         * Returns true if i is within index constraints
+         */
         return i < this.size && i >= 0;
     }
     private boolean isValid(int x, int y) {
+        /**
+         * Returns true if x and y are within index constraints
+         */
         return this.isValid(x) && this.isValid(y);
     }
 
-    public void set(Point p, char c) {
-        if (p.getY() >= this.size) {
-            throw new InputMismatchException("Point value out of bounds");
-        }
-        this.letters[p.getX()][p.getY()] = c;
+    public boolean isFull() {
+        /**
+         * Returns true if all x and y values have been filled
+         */
+        return !this.addPoint.hasNext();
     }
 
-    public char get(Point p, Direction d, int offset) {
-        int x = p.getX() + (d.getX() * offset);
-        int y = p.getY() + (d.getY() * offset);
-        if (!isValid(x, y)) {
+    public void set(char c) throws InputMismatchException {
+        /**
+         * Inserts c at the next valid x and y value
+         */
+        if (!this.isValid(this.addPoint.getY())) {
+            throw new InputMismatchException("Point value out of bounds");
+        }
+        this.letters[this.addPoint.getX()][this.addPoint.getY()] = c;
+        this.addPoint.getNext();
+    }
+
+    public char get(Point start, Direction dir, int distance) {
+        /**
+         * Returns the character in the specified direction and distance from the point
+         */
+        int x = start.getX() + (dir.getX() * distance);
+        int y = start.getY() + (dir.getY() * distance);
+        // The new point is not in bounds
+        if (!this.isValid(x, y)) {
             return ' ';
         }
         return this.letters[x][y];
     }
 
-    public String getString(Point p, Direction d, int numLetters) {
+    public String getString(Point start, Direction dir, int length) {
+        /**
+         * Returns a string consisting of letters in the specified direction
+         */
         StringBuilder builder = new StringBuilder();
-        int x = p.getX();
-        int y = p.getY();
-        for (int i = 0; i < numLetters; i++) {
+        int x = start.getX();
+        int y = start.getY();
+        for (int i = 0; i < length; i++) {
             if (!isValid(x, y)) {
                 return "";
             }
             builder.append(this.letters[x][y]);
-            x += d.getX();
-            y += d.getY();
+            x += dir.getX();
+            y += dir.getY();
         }
         return builder.toString();
     }
 }
+
 class Result {
     public String word;
     public int over;
