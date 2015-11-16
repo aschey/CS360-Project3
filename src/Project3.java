@@ -99,7 +99,7 @@ class Puzzle {
             System.exit(1);
         }
         // Start searching words of length 4 because that's the smallest valid word
-        final int MIN_LENGTH = 1;
+        final int MIN_LENGTH = 4;
         Point wordStart = new Point(this.size);
         while (wordStart.hasNext()) {
             // Start at a point and depth-first search for words in each direction
