@@ -104,14 +104,14 @@ class Puzzle {
         while (wordStart.hasNext()) {
             // Start at a point and depth-first search for words in each direction
             for (Direction searchDir : Direction.values()) {
-                String check = this.letters.getString(wordStart, searchDir, MIN_LENGTH);
+                String prefix = this.letters.getString(wordStart, searchDir, MIN_LENGTH);
                 // If a valid string of length 4 doesn't exist at this point and direction,
                 // move to the next one
-                if (!check.equals("")) {
+                if (!prefix.equals("")) {
                     // At first, search using all valid words
                     // This list will be narrowed down as the recursive function runs
                     // in order to decrease search time
-                    this.findWordsRec(check, wordStart, searchDir, this.words);
+                    this.findWordsRec(prefix, wordStart, searchDir, this.words);
                 }
             }
             wordStart.getNext();
