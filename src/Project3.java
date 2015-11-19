@@ -130,9 +130,10 @@ class Puzzle {
         }
         // Check if the prefix equals the shortest word in the list of valid words
         // The only case where the list will have more than one word is when the previous word is a substring of the next word
-        // i.e. get, gets, getting
+        // i.e. [get, gets, getting]
         // Therefore, we always want to check the smallest word first to insure we don't skip any
         String word = searchList.get(0);
+        // Print the new word when it is found, but don't stop searching this path in case there are more valid words
         if (prefix.equals(word)) {
             System.out.println(new Result(word, wordStart.getX() + 1, wordStart.getY() + 1, searchDir));
         }
