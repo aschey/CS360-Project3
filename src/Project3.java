@@ -160,7 +160,7 @@ class Puzzle {
         }
         // Find the first index of a matching word. We need to start at the first index
         // because words need to be added to the new list in sorted order
-        while (wordIndex > 0 && this.words.get(wordIndex - 1).startsWith(prefix)) {
+        while (wordIndex > 0 && searchList.get(wordIndex - 1).startsWith(prefix)) {
             wordIndex--;
         }
         for (int i = wordIndex; i < searchList.size() && searchList.get(i).startsWith(prefix); i++) {
@@ -328,6 +328,6 @@ class Result {
 
     @Override
     public String toString() {
-        return this.word + " (" + this.over + ", " + this.down + ", " + this.direction + ")";
+        return this.word + "(" + this.over + "," + this.down + "," + this.direction + ")";
     }
 }
