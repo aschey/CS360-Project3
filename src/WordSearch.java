@@ -2,14 +2,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 
-/**
- * Austin Schey
- * CS360
- * 11/19/2015
- * Project 3
- */
-
-public class Project3 {
+public class WordSearch {
     public static void main(String[] args) {
         try {
             // Create a sorted list of words from words.txt
