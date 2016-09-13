@@ -2,7 +2,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 
-public class WordSearch {
+public class WordFinder {
     public static void main(String[] args) {
         try {
             // Create a sorted list of words from words.txt
